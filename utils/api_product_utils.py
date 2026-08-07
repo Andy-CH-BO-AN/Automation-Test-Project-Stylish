@@ -8,62 +8,62 @@ from table_object.image_table import search_images_by_product_id
 from table_object.variant_table import search_variants_by_product_id
 
 
-def get_all_pages_products(product_details, pages, session, keyword=None, category=None):
-    if keyword is not None and category is not None:
-        logging.info("The variables keyword and category cannot coexist simultaneously.")
-        assert False
+def get_all_pages_products(session, pages, *, keyword=None, category=None):
+    if (keyword is None) == (category is None):
+        raise ValueError("Provide exactly one of keyword or category")
 
+    products = []
     for paging in range(pages):
         if keyword is not None:
-            product_search_api = ProductsSearchApi(session, keyword, paging)
-            response = product_search_api.send()
-            product_detail_data = response.json()["data"]
-
+            response = ProductsSearchApi(session, keyword, paging).send()
         else:
-            product_search_api = ProductsCategoryApi(session, category, paging)
-            response = product_search_api.send()
-            product_detail_data = response.json()["data"]
+            response = ProductsCategoryApi(session, category, paging).send()
 
-        product_details += product_detail_data
         assert response.status_code == 200
+        products.extend(response.json()["data"])
+
         if paging < pages - 1:
-            logging.info(f"paging: {paging} pages: {pages}")
+            logging.info("paging: %s pages: %s", paging, pages)
             assert response.json()["next_paging"] == paging + 1
 
-    return product_details
+    return products
 
 
-def processing_data_to_compare_product_detail(db_product_detail, conn):
+def normalize_db_product_detail(db_product_detail, conn):
+    product = dict(db_product_detail)
+    product_id = product["id"]
+    domain = os.getenv("DOMAIN", "").rstrip("/")
+
+    main_image = product["main_image"]
+    product["main_image"] = f"{domain}/assets/{product_id}/{main_image}"
+
+    product["images"] = [
+        f"{domain}/assets/{product_id}/{row['image']}"
+        for row in search_images_by_product_id(product_id, conn)
+    ]
+
     colors = []
     sizes = []
-    images = []
-    db_images_details = search_images_by_product_id(db_product_detail["id"], conn)
-    db_variant_details = search_variants_by_product_id(db_product_detail["id"], conn)
+    variants = []
+    color_cache = {}
 
-    main_image = db_product_detail["main_image"]
-    db_product_detail["main_image"] = \
-        f"{os.getenv('DOMAIN')}/assets/{db_product_detail['id']}/{main_image}"
+    for raw_variant in search_variants_by_product_id(product_id, conn):
+        variant = dict(raw_variant)
+        color_id = variant.pop("color_id")
 
-    for db_image_detail in db_images_details:
-        images.append(
-            f"{(os.getenv('DOMAIN'))}/assets/{db_product_detail['id']}/{db_image_detail['image']}")
+        if color_id not in color_cache:
+            color_cache[color_id] = search_color_code_and_name(color_id, conn)
+        color = dict(color_cache[color_id])
 
-    for db_variant_detail in db_variant_details:
-        color_id = db_variant_detail["color_id"]
-        db_variant_detail["color_code"] = search_color_code_and_name(color_id, conn)["code"]
-        del db_variant_detail["color_id"]
-
-        color = search_color_code_and_name(color_id, conn)
+        variant["color_code"] = color["code"]
+        variants.append(variant)
 
         if color not in colors:
             colors.append(color)
+        if variant["size"] not in sizes:
+            sizes.append(variant["size"])
 
-        if db_variant_detail["size"] not in sizes:
-            sizes.append(db_variant_detail["size"])
-
-    db_product_detail["images"] = images
-    db_product_detail["variants"] = db_variant_details
-    db_product_detail["colors"] = colors
-    db_product_detail["sizes"] = sizes
-
-    return db_product_detail
+    product["variants"] = variants
+    product["colors"] = colors
+    product["sizes"] = sizes
+    return product
