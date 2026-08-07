@@ -4,13 +4,10 @@ import os
 import allure
 import pytest
 from allure_commons.types import AttachmentType
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.chrome.service import Service
-from webdriver_manager.chrome import ChromeDriverManager
 
 from page_objects.login_page import LoginPage
 from utils.test_credentials import get_worker_credentials
+from utils.web_driver import create_chrome_driver
 
 
 @pytest.fixture(scope="function")
@@ -21,13 +18,7 @@ def setup_driver():
     if not domain:
         pytest.fail("DOMAIN environment variable is required for web tests")
 
-    service = Service(executable_path=ChromeDriverManager().install())
-    options = Options()
-    options.add_argument("--headless")
-    options.add_argument("--window-size=1920,1080")
-    driver = webdriver.Chrome(service=service, options=options)
-    driver.get(domain)
-
+    driver = create_chrome_driver(domain)
     try:
         yield driver
     finally:
