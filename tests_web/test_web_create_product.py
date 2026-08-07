@@ -1,4 +1,3 @@
-import logging
 import os
 
 import allure
@@ -22,9 +21,9 @@ def test_create_product_success(setup_driver, product_info, request):
     admin_page.input_product_detail(product_info)
     admin_page.create_product()
     admin_page.get_alert()
-    setup_driver.switch_to.window(setup_driver.window_handles[0])
-    admin_page.verify_product_info_in_admin(product_info)
 
+    setup_driver.switch_to.window(setup_driver.window_handles[0])
+    assert admin_page.has_product(product_info)
     request.addfinalizer(lambda: admin_page.delete_product(product_info))
 
 
