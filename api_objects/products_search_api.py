@@ -1,13 +1,10 @@
-import os
 from utils.api_utils import ApiBase
 
 
 class ProductsSearchApi(ApiBase):
     def __init__(self, session, keyword, paging):
-        self.base_url = os.getenv("BASE_URL")
-        url = f"{self.base_url}/products/search?keyword={keyword}&paging={paging}"
-        super().__init__(session, url)
+        super().__init__(session, "/products/search")
+        self.params = {"keyword": keyword, "paging": paging}
 
     def send(self):
-        response = self.api_request("get")
-        return response
+        return self.api_request("get", params=self.params)
