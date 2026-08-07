@@ -1,8 +1,7 @@
-import logging
 import time
 
-from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.wait import WebDriverWait
 
 
 class PageBase:
@@ -11,10 +10,9 @@ class PageBase:
         self.wait = WebDriverWait(self.driver, 20)
 
     def find_element(self, locator, clickable=True):
-        if not clickable:
-            return self.wait.until(EC.visibility_of_element_located(locator))
-        else:
+        if clickable:
             return self.wait.until(EC.element_to_be_clickable(locator))
+        return self.wait.until(EC.visibility_of_element_located(locator))
 
     def find_elements(self, locator):
         return self.wait.until(EC.visibility_of_all_elements_located(locator))
@@ -25,7 +23,6 @@ class PageBase:
             self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight)")
             time.sleep(2)
             new_height = self.driver.execute_script("return document.body.scrollHeight")
-
             if new_height == last_height:
                 break
             last_height = new_height
@@ -37,10 +34,10 @@ class PageBase:
         return alert_text
 
     def get_jwt_token(self):
-        jwt_token = self.driver.execute_script("return window.localStorage.getItem('jwtToken');")
-        logging.info(jwt_token)
-        return jwt_token
+        return self.driver.execute_script("return window.localStorage.getItem('jwtToken');")
 
     def set_jwt_token(self, jwt_token):
-        logging.info(jwt_token)
-        self.driver.execute_script(f"return window.localStorage.setItem('jwtToken', '{jwt_token}');")
+        self.driver.execute_script(
+            "window.localStorage.setItem('jwtToken', arguments[0]);",
+            jwt_token,
+        )
