@@ -1,0 +1,9 @@
+**/.pytest_cache/
+/myenv/
+**/allure-results/
+**/allure-report/
+/.idea
+/log
+/.env
+/db_test.py
+*.DS_Store
