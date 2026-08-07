@@ -1,8 +1,10 @@
 import logging
 import random
+
+from selenium.webdriver.common.by import By
+
 from table_object import color_table
 from utils.page_base import PageBase
-from selenium.webdriver.common.by import By
 
 
 class ProductPage(PageBase):
@@ -25,23 +27,31 @@ class ProductPage(PageBase):
         element = random.choice(elements)
         element.click()
         selected_element = self.find_element(self.product_option_selected(option))
+
         if option == "size":
-            logging.info(f'size: {element.text} /n selected size: {selected_element.text}')
+            logging.info("size: %s\nselected size: %s", element.text, selected_element.text)
             return element.text == selected_element.text
-        else:
-            logging.info(f'data_id: {element.get_attribute("data_id")} /n '
-                         f'selected data_id: {selected_element.get_attribute("data_id")}')
-            logging.info(f'style: {element.get_attribute("style")} /n '
-                         f'selected style: {selected_element.get_attribute("style")}')
-            return element.get_attribute("data_id") == selected_element.get_attribute("data_id") and \
-                element.get_attribute("style") == selected_element.get_attribute("style")
+
+        logging.info(
+            "data_id: %s\nselected data_id: %s",
+            element.get_attribute("data_id"),
+            selected_element.get_attribute("data_id"),
+        )
+        logging.info(
+            "style: %s\nselected style: %s",
+            element.get_attribute("style"),
+            selected_element.get_attribute("style"),
+        )
+        return (
+            element.get_attribute("data_id") == selected_element.get_attribute("data_id")
+            and element.get_attribute("style") == selected_element.get_attribute("style")
+        )
 
     def get_quantity(self):
         qty = self.find_element(self.qty_value).text
-        logging.info(f"qty: {qty}")
+        logging.info("qty: %s", qty)
         return qty
 
-    # Fix me: use qty nums param
     def edit_quantity(self, operation):
         self.find_element((By.CLASS_NAME, f"product__quantity-{operation}")).click()
 
@@ -50,15 +60,22 @@ class ProductPage(PageBase):
 
     def get_cart_nums(self):
         cart_nums = self.find_element(self.cart_number).text
-        logging.info(f"cart_nums: {cart_nums}")
+        logging.info("cart_nums: %s", cart_nums)
         return cart_nums
 
     def get_product_detail(self, conn):
         product_name = self.find_element(self.product_name, clickable=False).text
         product_id = self.find_element(self.product_id, clickable=False).text
-        product_price = self.find_element(self.product_price, clickable=False).text.split("/n")[-1].split(".")[-1]
-        color_id = self.find_element(self.product_option_selected("color")) \
-            .get_attribute("data_id").replace("color_code_","")
+        product_price = (
+            self.find_element(self.product_price, clickable=False)
+            .text.split("\n")[-1]
+            .split(".")[-1]
+        )
+        color_id = (
+            self.find_element(self.product_option_selected("color"))
+            .get_attribute("data_id")
+            .replace("color_code_", "")
+        )
         product_color = color_table.search_color(color_id, conn)
         product_size = self.find_element(self.product_option_selected("size")).text
         product_qty = self.get_quantity()
@@ -69,7 +86,7 @@ class ProductPage(PageBase):
             "product_price": product_price,
             "product_color": product_color,
             "product_size": product_size,
-            "product_qty": product_qty
+            "product_qty": product_qty,
         }
         logging.info(product_detail)
         return product_detail
