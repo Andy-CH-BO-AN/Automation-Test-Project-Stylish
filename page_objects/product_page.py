@@ -3,7 +3,6 @@ import random
 
 from selenium.webdriver.common.by import By
 
-from table_object import color_table
 from utils.page_base import PageBase
 
 
@@ -63,32 +62,25 @@ class ProductPage(PageBase):
         logging.info("cart_nums: %s", cart_nums)
         return cart_nums
 
-    def get_product_detail(self, conn):
-        product_name = self.find_element(self.product_name, clickable=False).text
-        product_id = self.find_element(self.product_id, clickable=False).text
-        product_price = (
-            self.find_element(self.product_price, clickable=False)
-            .text.split("\n")[-1]
-            .split(".")[-1]
-        )
-        color_id = (
+    def get_product_detail(self):
+        color_code = (
             self.find_element(self.product_option_selected("color"))
             .get_attribute("data_id")
             .replace("color_code_", "")
         )
-        product_color = color_table.search_color(color_id, conn)
-        product_size = self.find_element(self.product_option_selected("size")).text
-        product_qty = self.get_quantity()
-
         product_detail = {
-            "product_name": product_name,
-            "product_id": product_id,
-            "product_price": product_price,
-            "product_color": product_color,
-            "product_size": product_size,
-            "product_qty": product_qty,
+            "product_name": self.find_element(self.product_name, clickable=False).text,
+            "product_id": self.find_element(self.product_id, clickable=False).text,
+            "product_price": (
+                self.find_element(self.product_price, clickable=False)
+                .text.split("\n")[-1]
+                .split(".")[-1]
+            ),
+            "product_color_code": color_code,
+            "product_size": self.find_element(self.product_option_selected("size")).text,
+            "product_qty": self.get_quantity(),
         }
-        logging.info(product_detail)
+        logging.info("product detail read from page: %s", product_detail)
         return product_detail
 
     def go_to_cart(self):
